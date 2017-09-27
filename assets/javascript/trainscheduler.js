@@ -1,4 +1,3 @@
-
 // Initialize Firebase
 var config = {
     apiKey: "AIzaSyCCPbPxdYa-ePO2ylSvsNtTpWd0qLT_etc",
@@ -22,6 +21,7 @@ var trainsRef = database.ref('/trains');
 
 $(document).ready(function(){
   displayTrains();
+ // refreshing the train timings every minute.
   var intervalId = setInterval(function(){
     $('#tbody').empty()
     displayTrains();
@@ -33,15 +33,13 @@ $(document).ready(function(){
 $("#add-train").on("click", function(event) {
     // Prevent form from submitting
    event.preventDefault();
-
-    // If any errors are experienced, log them to console.
+   // getting the values from input boxes and save them to a variable.
     var tName = $("#trainName").val().trim();
     var tDestination = $("#trainDestination").val().trim();
     var tFrequency = $("#trainFrequency").val().trim();
     var tFirstTime = $("#trainFirstTime").val().trim();
 
 
-    var timeToTrain = 10;
     // First Time (pushed back 1 year to make sure it comes before current time)
     var firstTimeConverted = moment(tFirstTime, "hh:mm").subtract(1, "years");
 
@@ -80,7 +78,7 @@ $("#add-train").on("click", function(event) {
 
 });
 function displayTrains(){
-  database.ref('/trains').on("child_added", function(snapshot) { 
+  trainsRef.on("child_added", function(snapshot) { 
     var tName = snapshot.val().name;
     var tDestination = snapshot.val().destination;
     var tFrequency = snapshot.val().frequency;
@@ -115,36 +113,114 @@ function displayTrains(){
   });
   
 }
-var keys = [];
+
 // Whenever a user clicks the Submit button
 $(document).on("click", "#remove", function(event) {
+    var keys = [];
+    // Prevent form from submitting
+    event.preventDefault();
+    //finding the Row index when clicked the remove button.
+    var rowindex = $(this).closest('tr').index();
+
+    trainsRef.on("value", function(snapshot) {
+      snapshot.forEach(function(data) {
+       // pushing all the data array Ids to an array.
+        keys.push(data.key)
+      });
+      
+      for (i=0;i<snapshot.numChildren();i++){
+        // if the clicked row index matched with the database element then delete the train.
+        if (rowindex=== i){
+          tRemoveKey = keys[i];
+          trainsRef.child(keys[i]).remove();
+          keys=[];
+          $('#tbody').empty()  
+          displayTrains(); 
+        }  
+      }
+    })
+      
+  });
+
+// Whenever a user clicks the Submit button
+$(document).on("click", "#update", function(event) {
     // Prevent form from submitting
     event.preventDefault();
    
-    var rowindex = $(this).closest('tr').index();
-    console.log('Index', rowindex);
-    
-
-    trainsRef.on("value", function(snapshot) {
-      console.log(snapshot.numChildren())
-      console.log(snapshot.child(1))
-      snapshot.forEach(function(data) {
-        console.log("The key is " + data.key );
-        keys.push(data.key)
-      });
-      for (i=0;i<snapshot.numChildren();i++){
-        if (rowindex=== i){
-          console.log('key to be removed' + keys[i])
-          tRemoveKey = keys[i];
-          trainsRef.child(keys[i]).remove();
-          $('#tbody').empty()  
-          displayTrains();
-        }
-      }
-
-      
-      
-    });
-  
+    inform("Information", "This functionality is not implemented ", "CLOSE")
 
 });
+
+
+  /* Generic Confirm func */
+  function confirm(heading, question, cancelButtonTxt, okButtonTxt,miscVal) {
+
+    var confirmModal = 
+      $('<div class="modal fade">' +        
+          '<div class="modal-dialog">' +
+          '<div class="modal-content">' +
+          '<div class="modal-header">' +
+            '<a class="close" data-dismiss="modal" >&times;</a>' +
+            '<h3>' + heading +'</h3>' +
+          '</div>' +
+
+          '<div class="modal-body">' +
+            '<p>' + question + '</p>' +
+          '</div>' +
+
+          '<div class="modal-footer">' +
+            '<a href="#!" class="btn" data-dismiss="modal">' + 
+              cancelButtonTxt + 
+            '</a>' +
+            '<a href="#!" id="okButton" class="btn btn-primary">' + 
+              okButtonTxt + 
+            '</a>' +
+          '</div>' +
+          '</div>' +
+          '</div>' +
+        '</div>');
+
+    confirmModal.find('#okButton').click(function(event) {
+      removeTrain(miscVal)
+      confirmModal.modal('hide');
+    }); 
+
+    confirmModal.modal('show');  
+  
+  };  
+/* END Generic Confirm func */
+
+/* Generic inform func */
+  function inform(heading, information, okButtonTxt) {
+
+    var confirmModal = 
+      $('<div class="modal fade">' +        
+          '<div class="modal-dialog">' +
+          '<div class="modal-content">' +
+          '<div class="modal-header">' +
+            '<a class="close" data-dismiss="modal" >&times;</a>' +
+            '<h3>' + heading +'</h3>' +
+          '</div>' +
+
+          '<div class="modal-body">' +
+            '<p>' + information + '</p>' +
+          '</div>' +
+
+          '<div class="modal-footer">' +
+            '<a href="#!" id="okButton" class="btn" data-dismiss="modal">' + 
+              okButtonTxt + 
+            '</a>' +
+          '</div>' +
+          '</div>' +
+          '</div>' +
+        '</div>');
+
+    confirmModal.find('#okButton').click(function(event) {
+      confirmModal.modal('hide');
+    });
+    confirmModal.modal('show');
+
+
+  };  
+/* END Generic inform func */
+
